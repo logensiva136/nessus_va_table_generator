@@ -1,46 +1,18 @@
 from pathlib import Path
 from csv import DictReader
-
-
 from docx import Document
 from docx.shared import Inches, Pt, Mm, Cm
 from docx.enum.style import WD_STYLE_TYPE
 from docx.oxml.shared import OxmlElement, qn
+from utils import read_csv, subnets, shade_cells
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_FOLDER = BASE_DIR / "data"
 # CSV name (csv file should be in data folder - CVETG/data/)
-CSV = DATA_FOLDER / "Web_server_10.0.20.1_254.csv"  # CSV file name
+CSV = DATA_FOLDER / "combined_hta_2023.csv"  # CSV file name
 
 
-def read_csv(path):
-    with open(path, encoding="utf-8") as f:
-        yield from DictReader(f)
-
-# custom subnet extractor
-
-
-def subnets(data: list[str]):
-    subnet = set(host.split(".")[2] for host in data)
-    return ", ".join([f"10.X.{i}.0/24" for i in subnet])
-
-
-# set cell shade color
-def shade_cells(cells, shade):
-    """
-Shade Colors:
-\nDarkRed - Critical
-\nRed - High
-\nOrange - Medium
-"""
-    for cell in cells:
-        tcPr = cell._tc.get_or_add_tcPr()
-        tcVAlign = OxmlElement("w:shd")
-        tcVAlign.set(qn("w:fill"), shade)
-        tcPr.append(tcVAlign)
-
-
-data = list(read_csv(CSV))
+data = list(x for x in read_csv(CSV) if x['Host'].split('.')[2] in ['40','50','120','121']) # filter main data
 
 # Create risk counts (critical, high, medium only)
 risk_counts = [
@@ -92,7 +64,7 @@ table.cell(1, 2).merge(table.cell(1, 3)).paragraphs[0].add_run(
 ).bold = True
 table.cell(2, 0).paragraphs[0].add_run("Type").bold = True
 table.cell(2, 1).paragraphs[0].add_run(
-    "Web Server Security Assessment" # Assessment type name
+    "Network Security Assessment"  # Assessment type name
 ).bold = False
 table.cell(2, 2).paragraphs[0].add_run(
     "Security Auditor"
@@ -146,9 +118,9 @@ for row in data:
         row_2_merged_cells_2 = table.cell(1, 2).merge(table.cell(1, 3))
         row_2_merged_cells_1.paragraphs[0].add_run(
             "Type Of Pentest"
-            ).bold = True
+        ).bold = True
         row_2_merged_cells_2.paragraphs[0].add_run(
-            "Web Security Assessments" # Assessment type name
+            "Network Security Assessments"  # Assessment type name
         ).bold = True
 
         # Row 3
@@ -201,4 +173,4 @@ for row in data:
         VULNERABILITY_COUNT += 1
 
 # Save the document
-doc.save(str(DATA_FOLDER/'Web Server Assessment.docx')) # Output file name
+doc.save(str(DATA_FOLDER/'Network Security Assessment.docx'))  # Output file name
